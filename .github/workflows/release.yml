@@ -19,6 +19,10 @@ jobs:
     - uses: snapcore/action-build@v1
       id: build
     - run: |
+        # Install libc6 to avoid error:
+        # /snap/nu/x1/bin/nu: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.38' not found (required by /snap/nu/x1/bin/nu)
+        sudo apt-get update
+        sudo apt-get install libc6
         sudo snap install --dangerous --classic ${{ steps.build.outputs.snap }}
         nu --version
     - uses: snapcore/action-publish@v1
