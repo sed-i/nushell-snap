@@ -19,7 +19,7 @@ jobs:
     - uses: snapcore/action-build@v1
       id: build
     - run: |
-        sudo snap install --dangerous --classic ${{ steps.snapcraft.outputs.snap }}
+        sudo snap install --dangerous --classic ${{ steps.build.outputs.snap }}
         nu --version
     - uses: snapcore/action-publish@v1
       env:
