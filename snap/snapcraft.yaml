@@ -1,0 +1,32 @@
+name: nu
+base: core24
+license: MIT
+source-code: https://github.com/sed-i/nushell-snap
+issues: https://github.com/sed-i/nushell-snap/issues
+version: "0.97.1"  # Note: must match source-tag below (updated by CI)
+
+title: Nushell
+website: https://www.nushell.sh/
+summary: A new type of shell
+description: |
+  Rather than being either a shell, or a programming language, Nushell connects both by
+  bringing a rich programming language and a full-featured shell together into one package.
+
+confinement: classic
+
+apps:
+  nu:
+    command: bin/nu
+
+parts:
+  nu:
+    plugin: rust
+    source: https://github.com/nushell/nushell.git
+    source-tag: "0.97.1"
+    build-packages: [libxcb-composite0-dev, pkg-config, libssl-dev, build-essential, musl-tools]
+    build-snaps: [rustup]
+    #override-build: |
+      #rustup install stable
+      #craftctl default
+      #cargo build --release --all --target x86_64-unknown-linux-gnu --features=static-link-openssl
+
