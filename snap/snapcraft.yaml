@@ -1,9 +1,9 @@
-name: nu
+name: nushell
 base: core24
 license: MIT
 source-code: https://github.com/sed-i/nushell-snap
 issues: https://github.com/sed-i/nushell-snap/issues
-version: "0.97.1"  # Note: must match source-tag below (updated by CI)
+version: "0.97.1"  # Note: must match source-tag below
 
 title: Nushell
 website: https://www.nushell.sh/
@@ -19,7 +19,7 @@ apps:
     command: bin/nu
 
 parts:
-  nu:
+  nushell:
     plugin: rust
     source: https://github.com/nushell/nushell.git
     source-tag: "0.97.1"
