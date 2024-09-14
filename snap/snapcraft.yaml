@@ -16,7 +16,23 @@ confinement: classic
 
 apps:
   nu:
-    command: bin/nu
+    command: nu
+  nu-plugin-stress-internals:
+    command: nu_plugin_stress_internals
+  nu-plugin-gstat:
+    command: nu_plugin_gstat
+  nu-plugin-formats:
+    command: nu_plugin_formats
+  nu-plugin-polars:
+    command: nu_plugin_polars
+  nu-plugin-query:
+    command: nu_plugin_query
+  nu-plugin-inc:
+    command: nu_plugin_inc
+  nu-plugin-example:
+    command: nu_plugin_example
+  nu-plugin-custom-values:
+    command: nu_plugin_custom_values
 
 parts:
   nushell:
@@ -25,8 +41,12 @@ parts:
     source-tag: "0.97.1"
     build-packages: [libxcb-composite0-dev, pkg-config, libssl-dev, build-essential, musl-tools]
     build-snaps: [rustup]
-    #override-build: |
-      #rustup install stable
+    build-attributes:
+      - enable-patchelf
+    override-build: |
+      rustup install stable
       #craftctl default
-      #cargo build --release --all --target x86_64-unknown-linux-gnu --features=static-link-openssl
+      cargo build --release --all --features=static-link-openssl
 
+      # Ref: https://github.com/canonical/snapcraft/blob/8faa6d54eef1f4437c7e10337ed8fdcc8dc51cbc/snapcraft_legacy/plugins/v2/rust.py#L194
+      find ./target/release -maxdepth 1 -executable -type f -name "nu*" -exec install -Dvm755 {} "${SNAPCRAFT_PART_INSTALL}" ';'
