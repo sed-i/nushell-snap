@@ -3,7 +3,7 @@ base: core24
 license: MIT
 source-code: https://github.com/sed-i/nushell-snap
 issues: https://github.com/sed-i/nushell-snap/issues
-version: "0.97.1"  # Note: must match source-tag below
+version: "0.98.0"  # Note: must match source-tag below
 
 title: Nushell
 website: https://www.nushell.sh/
@@ -38,7 +38,7 @@ parts:
   nushell:
     plugin: rust
     source: https://github.com/nushell/nushell.git
-    source-tag: "0.97.1"
+    source-tag: "0.98.0"
     build-packages: [libxcb-composite0-dev, pkg-config, libssl-dev, build-essential, musl-tools]
     build-snaps: [rustup]
     build-attributes:
