@@ -3,7 +3,7 @@ base: core24
 license: MIT
 source-code: https://github.com/sed-i/nushell-snap
 issues: https://github.com/sed-i/nushell-snap/issues
-version: "0.98.0"  # Note: must match source-tag below
+adopt-info: nushell  # Note: snap version is set from tag
 
 title: Nushell
 icon: nushell-original.png
@@ -14,6 +14,7 @@ description: |
   bringing a rich programming language and a full-featured shell together into one package.
 
 confinement: classic
+grade: stable
 
 apps:
   nu:
@@ -40,13 +41,15 @@ parts:
     plugin: rust
     source: https://github.com/nushell/nushell.git
     source-tag: "0.98.0"
+    override-pull: |
+      craftctl default
+      craftctl set version="$(git describe --tags --always)"
     build-packages: [libxcb-composite0-dev, pkg-config, libssl-dev, build-essential, musl-tools]
     build-snaps: [rustup]
     build-attributes:
       - enable-patchelf
     override-build: |
       rustup install stable
-      #craftctl default
       cargo build --release --all --features=static-link-openssl
 
       # Ref: https://github.com/canonical/snapcraft/blob/8faa6d54eef1f4437c7e10337ed8fdcc8dc51cbc/snapcraft_legacy/plugins/v2/rust.py#L194
