@@ -6,6 +6,7 @@ issues: https://github.com/sed-i/nushell-snap/issues
 version: "0.98.0"  # Note: must match source-tag below
 
 title: Nushell
+icon: nushell-original.png
 website: https://www.nushell.sh/
 summary: A new type of shell
 description: |
