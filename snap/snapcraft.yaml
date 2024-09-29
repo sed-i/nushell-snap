@@ -16,6 +16,9 @@ description: |
 confinement: classic
 grade: stable
 
+platforms:
+  amd64:
+
 apps:
   nu:
     command: nu
@@ -40,7 +43,6 @@ parts:
   nushell:
     plugin: rust
     source: https://github.com/nushell/nushell.git
-    source-tag: "0.98.0"
     override-pull: |
       craftctl default
       craftctl set version="$(git describe --tags --always)"
