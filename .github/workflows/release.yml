@@ -39,13 +39,13 @@ jobs:
         # We need to promote from edge to beta only if the edge version is a semver
         [[ "$EDGE" =~ ^v?[0-9]+(\.[0-9]+){1,2}$ ]] && echo "promote=yes" || echo "promote=no" >> $GITHUB_OUTPUT
 
-    - if: version.outputs.promote == 'yes'
+    - if: ${{ steps.version.outputs.promote == 'yes' }}
       name: Promote from edge to beta
       run: |
         # If needed, we first promote from edge to beta, so we do not overwrite the version that is currently in edge.
         yes | snapcraft promote nushell --from-channel edge --to-channel beta
 
-    - if: version.outputs.build == 'yes'
+    - if: ${{ steps.version.outputs.build == 'yes' }}
       name: Build snap
       uses: snapcore/action-build@v1
       id: build
@@ -53,7 +53,7 @@ jobs:
         sudo snap install --dangerous --classic ${{ steps.build.outputs.snap }}
         nushell.nu --version
 
-    - if: version.outputs.build == 'yes'
+    - if: ${{ steps.version.outputs.build == 'yes' }}
       name: Publish to edge
       uses: snapcore/action-publish@v1
       with:
