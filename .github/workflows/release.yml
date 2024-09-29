@@ -5,6 +5,9 @@ concurrency:
   cancel-in-progress: true
 
 on:
+  schedule:
+    # Daily @ 10:00 UTC
+    - cron:  '0 10 * * *'
   workflow_dispatch: {}
   push:
     branches:
@@ -14,16 +17,45 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-24.04
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_LOGIN }}
+      # https://forum.snapcraft.io/t/how-to-promote-snaps-from-edge-in-github-actions/36106/7
+      SNAPCRAFT_HAS_TTY: "true"
     steps:
     - uses: actions/checkout@v4
-    - uses: snapcore/action-build@v1
+    - id: version
+      name: Check versions
+      run: |
+        # Promote edge to beta if the version of edge is a semver,
+        # i.e. maintainer tagged it with a semver.
+        CURRENT=$(git describe --tags --always)
+        EDGE=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version&architecture=amd64" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .version')
+
+        echo "current=$CURRENT" >> $GITHUB_OUTPUT
+        echo "edge=$EDGE" >> $GITHUB_OUTPUT
+
+        # We only need to build if the current version differs from the version in edge
+        [[ "$CURR" == "$EDGE" ]] && echo "build=yes" || echo "build=no" >> $GITHUB_OUTPUT
+        # We need to promote from edge to beta only if the edge version is a semver
+        [[ "$EDGE" =~ ^v?[0-9]+(\.[0-9]+){1,2}$ ]] && echo "promote=yes" || echo "promote=no" >> $GITHUB_OUTPUT
+
+    - if: version.outputs.promote == 'yes'
+      name: Promote from edge to beta
+      run: |
+        # If needed, we first promote from edge to beta, so we do not overwrite the version that is currently in edge.
+        yes | snapcraft promote nushell --from-channel edge --to-channel beta
+
+    - if: version.outputs.build == 'yes'
+      name: Build snap
+      uses: snapcore/action-build@v1
       id: build
     - run: |
         sudo snap install --dangerous --classic ${{ steps.build.outputs.snap }}
         nushell.nu --version
-    - uses: snapcore/action-publish@v1
-      env:
-        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_LOGIN }}
+
+    - if: version.outputs.build == 'yes'
+      name: Publish to edge
+      uses: snapcore/action-publish@v1
       with:
         snap: ${{ steps.build.outputs.snap }}
         release: edge
