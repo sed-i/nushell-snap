@@ -58,6 +58,7 @@ jobs:
       name: Promote from edge to beta
       run: |
         # If needed, we first promote from edge to beta, so we do not overwrite the version that is currently in edge.
+        sudo snap install snapcraft
         yes | snapcraft promote nushell --from-channel edge --to-channel beta
 
     - if: ${{ steps.version.outputs.build == 'yes' }}
