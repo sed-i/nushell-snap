@@ -35,7 +35,7 @@ jobs:
         echo "edge=$EDGE" >> $GITHUB_OUTPUT
 
         # We only need to build if the current version differs from the version in edge
-        [[ "$CURR" == "$EDGE" ]] && echo "build=yes" || echo "build=no" >> $GITHUB_OUTPUT
+        [[ "$CURRENT" == "$EDGE" ]] && echo "build=yes" || echo "build=no" >> $GITHUB_OUTPUT
         # We need to promote from edge to beta only if the edge version is a semver
         [[ "$EDGE" =~ ^v?[0-9]+(\.[0-9]+){1,2}$ ]] && echo "promote=yes" || echo "promote=no" >> $GITHUB_OUTPUT
 
@@ -49,7 +49,11 @@ jobs:
       name: Build snap
       uses: snapcore/action-build@v1
       id: build
-    - run: |
+
+
+    - if: ${{ steps.version.outputs.build == 'yes' }}
+      name: Install snap (test)
+      run: |
         sudo snap install --dangerous --classic ${{ steps.build.outputs.snap }}
         nushell.nu --version
 
