@@ -39,6 +39,11 @@ jobs:
         # We need to promote from edge to beta only if the edge version is a semver
         [[ "$EDGE" =~ ^v?[0-9]+(\.[0-9]+){1,2}$ ]] && echo "promote=yes" || echo "promote=no" >> $GITHUB_OUTPUT
 
+        echo "Current version: $CURRENT"
+        echo "Edge version: $EDGE"
+        echo "GITHUB_OUTPUT:"
+        cat "$GITHUB_OUTPUT"
+
     - if: ${{ steps.version.outputs.promote == 'yes' }}
       name: Promote from edge to beta
       run: |
