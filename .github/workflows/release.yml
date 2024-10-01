@@ -36,16 +36,16 @@ jobs:
         echo "current=$CURRENT" >> $GITHUB_OUTPUT
         echo "edge=$EDGE" >> $GITHUB_OUTPUT
 
-        # We only need to build if the current version differs from the version in edge
+        # We need to build from main only if the current version differs from the version in edge
         if [[ "$CURRENT" != "$EDGE" ]]; then
           echo "build=yes" >> $GITHUB_OUTPUT
         else
           echo "build=no" >> $GITHUB_OUTPUT
         fi
 
-        # We need to promote from edge to beta only if the edge version is a semver
-        # and the version in beta differs from the version in edge
-        if [[ "$EDGE" =~ ^v?[0-9]+(\.[0-9]+){1,2}$ && "$EDGE" != "$BETA" ]]; then
+        # We need to promote from the new edge to beta only if the edge version is a semver
+        # and the version in beta differs from the new version in edge
+        if [[ "$CURRENT" =~ ^v?[0-9]+(\.[0-9]+){1,2}$ && "$CURRENT" != "$BETA" ]]; then
           echo "promote=yes" >> $GITHUB_OUTPUT
         else
           echo "promote=no" >> $GITHUB_OUTPUT
@@ -57,18 +57,10 @@ jobs:
         echo "GITHUB_OUTPUT:"
         cat "$GITHUB_OUTPUT"
 
-    - if: ${{ steps.version.outputs.promote == 'yes' }}
-      name: Promote from edge to beta
-      run: |
-        # If needed, we first promote from edge to beta, so we do not overwrite the version that is currently in edge.
-        sudo snap install snapcraft --classic
-        yes | snapcraft promote nushell --from-channel edge --to-channel beta
-
     - if: ${{ steps.version.outputs.build == 'yes' }}
       name: Build snap
       uses: snapcore/action-build@v1
       id: build
-
 
     - if: ${{ steps.version.outputs.build == 'yes' }}
       name: Install snap (test)
@@ -82,3 +74,49 @@ jobs:
       with:
         snap: ${{ steps.build.outputs.snap }}
         release: edge
+
+    - if: ${{ steps.version.outputs.promote == 'yes' }}
+      name: Promote from edge to beta
+      run: |
+        sudo snap install snapcraft --classic
+        yes | snapcraft promote nushell --from-channel edge --to-channel beta
+
+    - name: Beta check
+      id: betaversion
+      run: |
+        LATEST_TAG=$(curl -s https://api.github.com/repos/nushell/nushell/releases | jq -r '.[].tag_name' | grep -E "^v?[0-9]+(\.[0-9]+){1,2}$" | sort -rV | head -1)
+        echo "latest=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+        # We need to pack and release to beta only if the latest tag differs from what's in beta.
+        # This could happen if the maintainer tagged with a semver and merged another commmit before
+        # this snap ci had a chance to run.
+        if [[ "$LATEST_TAG" != "$BETA" ]]; then
+          echo "rebeta=yes" >> $GITHUB_OUTPUT
+          sudo snap install yq
+          yq -i ".parts.nushell.source-tag = env(LATEST_TAG)" snap/snapcraft.yaml
+        else
+          echo "rebeta=no" >> $GITHUB_OUTPUT
+        fi
+
+        # Debug info:
+        echo "Latest tag: $LATEST_TAG"
+        echo "GITHUB_OUTPUT:"
+        cat "$GITHUB_OUTPUT"
+        
+    - if: ${{ steps.betaversion.outputs.rebeta == 'yes' }}
+      name: Build from latest tag
+      uses: snapcore/action-build@v1
+      id: betabuild
+
+    - if: ${{ steps.betaversion.outputs.rebate == 'yes' }}
+      name: Install snap (test)
+      run: |
+        sudo snap install --dangerous --classic ${{ steps.betabuild.outputs.snap }}
+        nushell.nu --version
+
+    - if: ${{ steps.betaversion.outputs.rebeta == 'yes' }}
+      name: Publish to beta
+      uses: snapcore/action-publish@v1
+      with:
+        snap: ${{ steps.betabuild.outputs.snap }}
+        release: beta
