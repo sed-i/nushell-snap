@@ -27,6 +27,7 @@ jobs:
       with:
         repository: nushell/nushell
         path: nushell
+        fetch-depth: 0
         fetch-tags: true
     - id: version
       name: Check versions
