@@ -93,7 +93,7 @@ jobs:
         if [[ "$LATEST_TAG" != "$BETA" ]]; then
           echo "rebeta=yes" >> $GITHUB_OUTPUT
           sudo snap install yq
-          yq -i ".parts.nushell.source-tag = env(LATEST_TAG)" snap/snapcraft.yaml
+          LATEST_TAG=$LATEST_TAG yq -i ".parts.nushell.source-tag = env(LATEST_TAG)" snap/snapcraft.yaml
         else
           echo "rebeta=no" >> $GITHUB_OUTPUT
         fi
