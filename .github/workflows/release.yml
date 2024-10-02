@@ -23,12 +23,16 @@ jobs:
       SNAPCRAFT_HAS_TTY: "true"
     steps:
     - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        repository: nushell/nushell
+        path: nushell
     - id: version
       name: Check versions
       run: |
         # Promote edge to beta if the version of edge is a semver,
         # i.e. maintainer tagged it with a semver.
-        CURRENT=$(git describe --tags --always)
+        CURRENT=$(git -C nushell describe --tags --always)
         JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version&architecture=amd64")
         EDGE=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .version')
         BETA=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "beta") | .version')
