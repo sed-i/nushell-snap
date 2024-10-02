@@ -91,7 +91,9 @@ jobs:
       id: betaversion
       run: |
         LATEST_TAG=$(curl -s https://api.github.com/repos/nushell/nushell/releases | jq -r '.[].tag_name' | grep -E "^v?[0-9]+(\.[0-9]+){1,2}$" | sort -rV | head -1)
+        BETA=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "beta") | .version')
         echo "latest=$LATEST_TAG" >> $GITHUB_OUTPUT
+        echo "beta=$BETA" >> $GITHUB_OUTPUT
 
         # We need to pack and release to beta only if the latest tag differs from what's in beta.
         # This could happen if the maintainer tagged with a semver and merged another commmit before
