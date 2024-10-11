@@ -18,7 +18,7 @@ jobs:
     name: Release
     runs-on: ubuntu-24.04
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         platform:
           - amd64
