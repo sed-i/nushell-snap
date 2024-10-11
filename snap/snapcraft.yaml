@@ -18,6 +18,18 @@ grade: stable
 
 platforms:
   amd64:
+  arm64:
+    build-on: [amd64, arm64]
+    build-for: [arm64]
+  armhf:
+    build-on: [amd64, armhf]
+    build-for: [armhf]
+  riscv64:
+    build-on: [amd64, riscv64]
+    build-for: [riscv64]
+  s390x:
+    build-on: [amd64, s390x]
+    build-for: [s390x]
 
 apps:
   nu:
@@ -46,13 +58,54 @@ parts:
     override-pull: |
       craftctl default
       craftctl set version="$(git describe --tags --always)"
-    build-packages: [libxcb-composite0-dev, pkg-config, libssl-dev, build-essential, musl-tools]
+    build-packages:
+      - libxcb-composite0-dev
+      - pkg-config
+      - libssl-dev
+      - build-essential
+      - musl-tools
+      - linux-libc-dev
+      - on amd64 to arm64:
+        - gcc-aarch64-linux-gnu
+        - linux-libc-dev-arm64-cross
+        - libc6-dev-arm64-cross
+      - on amd64 to armhf:
+        - gcc-arm-linux-gnueabihf
+        - linux-libc-dev-armhf-cross
+        - libc6-dev-armhf-cross
+      - on amd64 to riscv64:
+        - gcc-riscv64-linux-gnu
+        - linux-libc-dev-riscv64-cross
+        - libc6-dev-riscv64-cross
+      - on amd64 to s390x:
+        - gcc-s390x-linux-gnu
+        - linux-libc-dev-s390x-cross
+        - libc6-dev-s390x-cross
+    build-environment:
+      # https://doc.rust-lang.org/nightly/rustc/platform-support.html
+      # https://forum.snapcraft.io/t/platforms-and-architectures/36758
+      - to amd64:
+        - target: x86_64-unknown-linux-gnu
+      - on amd64 to arm64:
+        - CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        - target: aarch64-unknown-linux-gnu
+      - on amd64 to armhf:
+        - CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: arm-linux-gnueabihf-gcc
+        - target: armv7-unknown-linux-gnueabihf
+      - on amd64 to riscv64:
+        - CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_LINKER: riscv64-linux-gnu-gcc
+        - target: riscv64gc-unknown-linux-gnu
+      - on amd64 to s390x:
+        - CARGO_TARGET_S390X_UNKNOWN_LINUX_GNU_LINKER: s390x-linux-gnu-gcc
+        - target: s390x-unknown-linux-gnu
+        
     build-snaps: [rustup]
     build-attributes:
       - enable-patchelf
     override-build: |
       rustup install stable
-      cargo build --release --all --features=static-link-openssl
+      rustup target add $target
+      cargo build --release --all --features=static-link-openssl --target=$target
 
       # Ref: https://github.com/canonical/snapcraft/blob/8faa6d54eef1f4437c7e10337ed8fdcc8dc51cbc/snapcraft_legacy/plugins/v2/rust.py#L194
-      find ./target/release -maxdepth 1 -executable -type f -name "nu*" -exec install -Dvm755 {} "${SNAPCRAFT_PART_INSTALL}" ';'
+      find ./target/$target/release -maxdepth 1 -executable -type f -name "nu*" -exec install -Dvm755 {} "${SNAPCRAFT_PART_INSTALL}" ';'
