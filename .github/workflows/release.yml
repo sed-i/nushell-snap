@@ -17,6 +17,15 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: true
+      matrix:
+        platform:
+          - amd64
+          - arm64
+          - armhf
+          - riscv64
+          - s390x
     env:
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_LOGIN }}
       # https://forum.snapcraft.io/t/how-to-promote-snaps-from-edge-in-github-actions/36106/7
@@ -35,7 +44,7 @@ jobs:
         # Promote edge to beta if the version of edge is a semver,
         # i.e. maintainer tagged it with a semver.
         CURRENT=$(git -C nushell describe --tags --always)
-        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version&architecture=amd64")
+        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version&architecture=${{ matrix.platform }}")
         EDGE=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .version')
         BETA=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "beta") | .version')
 
@@ -67,6 +76,8 @@ jobs:
       name: Build snap
       uses: snapcore/action-build@v1
       id: build
+      env:
+        CRAFT_BUILD_FOR: ${{ matrix.platform }}
 
     - if: ${{ steps.version.outputs.build == 'yes' }}
       name: Install snap (test)
@@ -91,7 +102,7 @@ jobs:
       id: betaversion
       run: |
         LATEST_TAG=$(curl -s https://api.github.com/repos/nushell/nushell/releases | jq -r '.[].tag_name' | grep -E "^v?[0-9]+(\.[0-9]+){1,2}$" | sort -rV | head -1)
-        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version&architecture=amd64")
+        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version&architecture=${{ matrix.platform }}")
         BETA=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "beta") | .version')
         echo "latest=$LATEST_TAG" >> $GITHUB_OUTPUT
         echo "beta=$BETA" >> $GITHUB_OUTPUT
@@ -116,6 +127,8 @@ jobs:
       name: Build from latest tag
       uses: snapcore/action-build@v1
       id: betabuild
+      env:
+        CRAFT_BUILD_FOR: ${{ matrix.platform }}
 
     - if: ${{ steps.betaversion.outputs.rebeta == 'yes' }}
       name: Install snap (test)
