@@ -79,7 +79,7 @@ jobs:
       env:
         CRAFT_BUILD_FOR: ${{ matrix.platform }}
 
-    - if: ${{ steps.version.outputs.build == 'yes' }}
+    - if: ${{ steps.version.outputs.build == 'yes' && matrix.platform == 'amd64' }}
       name: Install snap (test)
       run: |
         sudo snap install --dangerous --classic ${{ steps.build.outputs.snap }}
@@ -130,7 +130,7 @@ jobs:
       env:
         CRAFT_BUILD_FOR: ${{ matrix.platform }}
 
-    - if: ${{ steps.betaversion.outputs.rebeta == 'yes' }}
+    - if: ${{ steps.betaversion.outputs.rebeta == 'yes' && matrix.platform == 'amd64' }}
       name: Install snap (test)
       run: |
         sudo snap install --dangerous --classic ${{ steps.betabuild.outputs.snap }}
