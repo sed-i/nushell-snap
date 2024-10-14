@@ -129,7 +129,7 @@ jobs:
         if [[ "$LATEST_TAG" != "$BETA" ]]; then
           echo "rebeta=yes" >> $GITHUB_OUTPUT
           LATEST_TAG=$LATEST_TAG yq -i ".parts.nushell.source-tag = env(LATEST_TAG), .version = env(LATEST_TAG)" snap/snapcraft.yaml
-          yq -i 'del(."adopt-info")' snapcraft.yaml
+          yq -i 'del(."adopt-info")' snap/snapcraft.yaml
         else
           echo "rebeta=no" >> $GITHUB_OUTPUT
         fi
