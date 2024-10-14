@@ -1,4 +1,5 @@
 name: Release
+# Periodically release upstream "main" to edge (if different).
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -30,7 +31,23 @@ jobs:
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_LOGIN }}
       # https://forum.snapcraft.io/t/how-to-promote-snaps-from-edge-in-github-actions/36106/7
       SNAPCRAFT_HAS_TTY: "true"
+      SEMVER: ^v?[0-9]+(\.[0-9]+){1,2}$
     steps:
+    - name: Install dependencies
+      run: |
+          sudo snap install snapcraft --classic
+          sudo snap install yq
+
+    - name: Release current edge to beta
+      run: |
+        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version,revision&architecture=${{ matrix.platform }}")
+        EDGE=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .version')
+        BETA=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "beta") | .version')
+        EDGEREV=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .revision')
+        if [[ "$EDGE" =~ $SEMVER && "$EDGE" != "$BETA" ]]; then
+          snapcraft release nushell $EDGEREV beta
+        fi
+  
     - uses: actions/checkout@v4
     - uses: actions/checkout@v4
       with:
@@ -38,20 +55,19 @@ jobs:
         path: nushell
         fetch-depth: 0
         fetch-tags: true
+        
     - id: version
       name: Check versions
       run: |
-        # Promote edge to beta if the version of edge is a semver,
-        # i.e. maintainer tagged it with a semver.
         CURRENT=$(git -C nushell describe --tags --always)
-        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version&architecture=${{ matrix.platform }}")
+        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version,revision&architecture=${{ matrix.platform }}")
         EDGE=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .version')
         BETA=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "beta") | .version')
 
         echo "current=$CURRENT" >> $GITHUB_OUTPUT
         echo "edge=$EDGE" >> $GITHUB_OUTPUT
 
-        # We need to build from main only if the current version differs from the version in edge
+        # We need to build from main only if the current version in main differs from the version in edge
         if [[ "$CURRENT" != "$EDGE" ]]; then
           echo "build=yes" >> $GITHUB_OUTPUT
         else
@@ -60,15 +76,13 @@ jobs:
 
         # We need to promote from the new edge to beta only if the edge version is a semver
         # and the version in beta differs from the new version in edge
-        if [[ "$CURRENT" =~ ^v?[0-9]+(\.[0-9]+){1,2}$ && "$CURRENT" != "$BETA" ]]; then
+        if [[ "$CURRENT" =~ $SEMVER && "$CURRENT" != "$EDGE" && "$CURRENT" != "$BETA" ]]; then
           echo "promote=yes" >> $GITHUB_OUTPUT
         else
           echo "promote=no" >> $GITHUB_OUTPUT
         fi
 
         # Debug info:
-        echo "Current version: $CURRENT"
-        echo "Edge version: $EDGE"
         echo "GITHUB_OUTPUT:"
         cat "$GITHUB_OUTPUT"
 
@@ -93,15 +107,17 @@ jobs:
         release: edge
 
     - if: ${{ steps.version.outputs.promote == 'yes' }}
-      name: Promote from edge to beta
+      name: Promote from new edge to beta
       run: |
-        sudo snap install snapcraft --classic
-        yes | snapcraft promote nushell --from-channel edge --to-channel beta
+        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version,revision&architecture=${{ matrix.platform }}")
+        EDGEREV=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .revision')
+        snapcraft release nushell $EDGEREV beta
 
     - name: Beta check
+      # Check if this workflow's interval happened to miss out on a previous commit tagged with a semver
       id: betaversion
       run: |
-        LATEST_TAG=$(curl -s https://api.github.com/repos/nushell/nushell/releases | jq -r '.[].tag_name' | grep -E "^v?[0-9]+(\.[0-9]+){1,2}$" | sort -rV | head -1)
+        LATEST_TAG=$(curl -s https://api.github.com/repos/nushell/nushell/releases | jq -r '.[].tag_name' | grep -E "$SEMVER" | sort -rV | head -1)
         JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version&architecture=${{ matrix.platform }}")
         BETA=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "beta") | .version')
         echo "latest=$LATEST_TAG" >> $GITHUB_OUTPUT
@@ -112,14 +128,13 @@ jobs:
         # this snap ci had a chance to run.
         if [[ "$LATEST_TAG" != "$BETA" ]]; then
           echo "rebeta=yes" >> $GITHUB_OUTPUT
-          sudo snap install yq
-          LATEST_TAG=$LATEST_TAG yq -i ".parts.nushell.source-tag = env(LATEST_TAG)" snap/snapcraft.yaml
+          LATEST_TAG=$LATEST_TAG yq -i ".parts.nushell.source-tag = env(LATEST_TAG), .version = env(LATEST_TAG)" snap/snapcraft.yaml
+          yq -i 'del(."adopt-info")' snapcraft.yaml
         else
           echo "rebeta=no" >> $GITHUB_OUTPUT
         fi
 
         # Debug info:
-        echo "Latest tag: $LATEST_TAG"
         echo "GITHUB_OUTPUT:"
         cat "$GITHUB_OUTPUT"
         
