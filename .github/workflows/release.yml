@@ -15,8 +15,8 @@ on:
       - main
 
 jobs:
-  release:
-    name: Release
+  release-to-edge:
+    name: Release to edge
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -113,6 +113,25 @@ jobs:
         EDGEREV=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .revision')
         snapcraft release nushell $EDGEREV beta
 
+  release-to-beta:
+    name: Release to beta
+    needs:
+      - release-to-edge
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - amd64
+          - arm64
+          - armhf
+          - riscv64
+          - s390x
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_LOGIN }}
+      SNAPCRAFT_HAS_TTY: "true"
+      SEMVER: ^v?[0-9]+(\.[0-9]+){1,2}$
+    steps:
     - name: Beta check
       # Check if this workflow's interval happened to miss out on a previous commit tagged with a semver
       id: betaversion
@@ -156,3 +175,4 @@ jobs:
       with:
         snap: ${{ steps.betabuild.outputs.snap }}
         release: beta
+
