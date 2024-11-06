@@ -105,6 +105,7 @@ parts:
     override-build: |
       rustup install stable
       rustup target add $target
+      echo "targets = ['$target']" >> rust-toolchain.toml
       cargo build --release --all --features=static-link-openssl --target=$target
 
       # Ref: https://github.com/canonical/snapcraft/blob/8faa6d54eef1f4437c7e10337ed8fdcc8dc51cbc/snapcraft_legacy/plugins/v2/rust.py#L194
