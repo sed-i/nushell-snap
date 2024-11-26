@@ -82,6 +82,9 @@ parts:
         - linux-libc-dev-s390x-cross
         - libc6-dev-s390x-cross
     build-environment:
+      # Must statically link, otherwise cross-compiled binaries end up being
+      # dynamically linked to /snap/core24/current/lib64/ld-linux-x86-64.so.2
+      - RUSTFLAGS: "-C target-feature=+crt-static"
       # https://doc.rust-lang.org/nightly/rustc/platform-support.html
       # https://forum.snapcraft.io/t/platforms-and-architectures/36758
       - to amd64:
