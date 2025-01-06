@@ -65,6 +65,7 @@ parts:
       - build-essential
       - musl-tools
       - linux-libc-dev
+      - wget
       - on amd64 to arm64:
         - gcc-aarch64-linux-gnu
         - linux-libc-dev-arm64-cross
@@ -93,8 +94,8 @@ parts:
         - CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
         - target: aarch64-unknown-linux-gnu
       - on amd64 to armhf:
-        - CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: arm-linux-gnueabihf-gcc
-        - target: armv7-unknown-linux-gnueabihf
+        - CARGO_TARGET_ARMV7_UNKNOWN_LINUX_MUSLEABIHF_LINKER: armv7r-linux-musleabihf-gcc
+        - target: armv7-unknown-linux-musleabihf
       - on amd64 to riscv64:
         - CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_LINKER: riscv64-linux-gnu-gcc
         - target: riscv64gc-unknown-linux-gnu
@@ -106,6 +107,10 @@ parts:
     build-attributes:
       - enable-patchelf
     override-build: |
+      # The following two lines are needed only for musleabihf
+      wget -qO- https://musl.cc/armv7r-linux-musleabihf-cross.tgz | tar xz -C $HOME
+      PATH=$PATH:$HOME/armv7r-linux-musleabihf-cross/bin
+      
       rustup install stable
       rustup target add $target
       echo "targets = ['$target']" >> rust-toolchain.toml
