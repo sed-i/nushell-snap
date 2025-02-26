@@ -40,7 +40,7 @@ jobs:
 
     - name: Release current edge to beta
       run: |
-        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version,revision&architecture=${{ matrix.platform }}")
+        JSON=$(curl -sL -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version,revision&architecture=${{ matrix.platform }}")
         EDGE=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .version')
         BETA=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "beta") | .version')
         EDGEREV=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .revision')
@@ -60,7 +60,7 @@ jobs:
       name: Check versions
       run: |
         CURRENT=$(git -C nushell describe --tags --always)
-        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version,revision&architecture=${{ matrix.platform }}")
+        JSON=$(curl -sL -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version,revision&architecture=${{ matrix.platform }}")
         EDGE=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .version')
         BETA=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "beta") | .version')
 
@@ -109,7 +109,7 @@ jobs:
     - if: ${{ steps.version.outputs.promote == 'yes' }}
       name: Promote from new edge to beta
       run: |
-        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version,revision&architecture=${{ matrix.platform }}")
+        JSON=$(curl -sL -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version,revision&architecture=${{ matrix.platform }}")
         EDGEREV=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "edge") | .revision')
         snapcraft release nushell $EDGEREV beta
 
@@ -141,8 +141,8 @@ jobs:
       # Check if this workflow's interval happened to miss out on a previous commit tagged with a semver
       id: betaversion
       run: |
-        LATEST_TAG=$(curl -s https://api.github.com/repos/nushell/nushell/releases | jq -r '.[].tag_name' | grep -E "$SEMVER" | sort -rV | head -1)
-        JSON=$(curl -s -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version&architecture=${{ matrix.platform }}")
+        LATEST_TAG=$(curl -sL https://api.github.com/repos/nushell/nushell/releases | jq -r '.[].tag_name' | grep -E "$SEMVER" | sort -rV | head -1)
+        JSON=$(curl -sL -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/nushell?fields=version&architecture=${{ matrix.platform }}")
         BETA=$(echo "$JSON" | jq -r '."channel-map"[] | select(.channel.track == "latest" and .channel.risk == "beta") | .version')
         echo "latest=$LATEST_TAG" >> $GITHUB_OUTPUT
         echo "beta=$BETA" >> $GITHUB_OUTPUT
