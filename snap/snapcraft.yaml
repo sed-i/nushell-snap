@@ -46,7 +46,7 @@ apps:
 parts:
   nushell:
     source: https://github.com/nushell/nushell.git
-    source-tag: "0.111.0"
+    source-tag: "0.112.2"
     override-pull: |
       craftctl default
       craftctl set version="$(git describe --tags --always)"
@@ -70,7 +70,7 @@ parts:
   x-nu-plugin-common: &common
     after: [nushell]
     source: https://github.com/nushell/nushell.git
-    source-tag: "0.111.0"
+    source-tag: "0.112.2"
     plugin: rust
     build-packages:
       - libxcb-composite0-dev
